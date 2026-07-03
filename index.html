@@ -1,0 +1,834 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Kavlo & Gotu 💖</title>
+<!-- PeerJS Network Library -->
+<script src="https://cdn.jsdelivr.net/npm/peerjs@1.5.4/dist/peerjs.min.js"></script>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&family=Playfair+Display:ital,wght@0,600;1,500&display=swap');
+
+:root {
+  --accent:#ff477e; --accent2:#ff8fab;
+  --bg1:#ff9a9e; --bg2:#fecfef;
+  --text:#7a2245; --card:255,255,255;
+  --glass-bg: rgba(var(--card), 0.45);
+  --glass-border: rgba(255, 255, 255, 0.55);
+}
+
+body.dark-mode {
+  --text: #f8f9fa; --card: 30,30,30;
+  --glass-bg: rgba(var(--card), 0.7);
+  --glass-border: rgba(255,255,255,0.1);
+  background: #121212 !important;
+}
+
+* { box-sizing: border-box; }
+html, body { margin: 0; padding: 0; overflow-x: hidden; }
+body {
+  min-height: 100vh; font-family: 'Poppins', sans-serif;
+  background: linear-gradient(135deg, var(--bg1) 0%, var(--bg2) 100%);
+  background-attachment: fixed; color: var(--text);
+  display: flex; justify-content: center; align-items: flex-start;
+  padding: 12px; transition: background 0.6s ease, color 0.3s;
+}
+
+.shell { width: 100%; max-width: 480px; margin: 0 auto; }
+.glass {
+  background: var(--glass-bg); backdrop-filter: blur(18px); -webkit-backdrop-filter: blur(18px);
+  border: 1px solid var(--glass-border); border-radius: 24px; box-shadow: 0 10px 40px rgba(0,0,0,0.1);
+}
+
+/* LOGIN */
+#login-screen { padding: 40px 20px; text-align: center; margin-top: 5vh; }
+.login-title { font-family: 'Playfair Display', serif; font-style: italic; font-size: 2.2em; margin: 0 0 8px; color: var(--accent); }
+.login-sub { font-size: 0.9em; opacity: 0.8; margin: 0 0 30px; }
+.role-picker { display: flex; gap: 15px; justify-content: center; }
+.role-btn {
+  flex: 1; background: var(--glass-bg); border: 1.5px solid var(--glass-border);
+  border-radius: 20px; padding: 25px 10px; cursor: pointer; font-weight: 600; color: var(--text);
+  transition: transform 0.2s, box-shadow 0.2s;
+}
+.role-btn:hover { transform: translateY(-5px); box-shadow: 0 8px 25px rgba(0,0,0,0.15); }
+.role-emoji { font-size: 2.5em; display: block; margin-bottom: 10px; }
+
+/* APP SHELL */
+#app-screen { display: none; }
+.app-header { display: flex; align-items: center; justify-content: space-between; padding: 14px 18px; margin-bottom: 12px; }
+.who { display: flex; align-items: center; gap: 12px; }
+.avatar {
+  width: 44px; height: 44px; border-radius: 50%; background: linear-gradient(135deg, var(--accent), var(--accent2));
+  display: flex; align-items: center; justify-content: center; font-size: 1.4em; box-shadow: 0 3px 10px rgba(0,0,0,0.15);
+}
+.who-text .name { font-weight: 700; font-size: 1.05em; line-height: 1.1; }
+.presence-line { font-size: 0.75em; display: flex; align-items: center; gap: 6px; opacity: 0.85; }
+.dot { width: 8px; height: 8px; border-radius: 50%; background: #bbb; display: inline-block; }
+.dot.online { background: #33d17a; box-shadow: 0 0 8px #33d17a; }
+.header-icons { display: flex; gap: 10px; }
+.icon-btn {
+  background: var(--glass-bg); border: 1px solid var(--glass-border); border-radius: 50%;
+  width: 38px; height: 38px; display: flex; align-items: center; justify-content: center; cursor: pointer; font-size: 1.1em;
+}
+
+.tabbar { display: flex; gap: 6px; padding: 6px; margin: 0 0 14px; border-radius: 18px; background: var(--glass-bg); overflow-x: auto; scroll-snap-type: x mandatory; }
+.tabbar::-webkit-scrollbar { display: none; }
+.tabbar button {
+  flex: 1 0 auto; background: transparent; border: none; padding: 10px 14px; border-radius: 14px;
+  font-family: 'Poppins', sans-serif; font-weight: 600; font-size: 0.85em; color: var(--text); cursor: pointer; scroll-snap-align: start;
+}
+.tabbar button.active { background: var(--glass-border); box-shadow: 0 3px 10px rgba(0,0,0,0.08); }
+
+.panel { padding: 20px; margin-bottom: 16px; display: none; }
+.panel.active { display: block; animation: fadeIn 0.3s ease; }
+@keyframes fadeIn { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
+
+h3.section-title { margin: 0 0 12px; font-family: 'Playfair Display', serif; font-style: italic; color: var(--accent); font-size: 1.3em; }
+p.hint { font-size: 0.8em; opacity: 0.75; margin: 0 0 14px; }
+button.pill {
+  background: linear-gradient(135deg, var(--accent), var(--accent2)); color: #fff; border: none; border-radius: 50px;
+  padding: 10px 20px; font-weight: 600; font-family: 'Poppins', sans-serif; cursor: pointer; font-size: 0.88em; box-shadow: 0 4px 14px rgba(0,0,0,0.2);
+}
+button.pill.ghost { background: var(--glass-bg); color: var(--text); box-shadow: none; border: 1px solid var(--glass-border); }
+
+/* CHAT */
+.chat-box { height: 320px; overflow-y: auto; display: flex; flex-direction: column; gap: 10px; padding: 5px; margin-bottom: 12px; }
+.msg { max-width: 80%; padding: 10px 14px; border-radius: 18px; font-size: 0.9em; line-height: 1.4; word-wrap: break-word; }
+.msg .ts { display: block; font-size: 0.65em; opacity: 0.7; margin-top: 4px; }
+.msg.me { align-self: flex-end; background: linear-gradient(135deg, var(--accent), var(--accent2)); color: #fff; border-bottom-right-radius: 4px; }
+.msg.them { align-self: flex-start; background: var(--glass-bg); border: 1px solid var(--glass-border); color: var(--text); border-bottom-left-radius: 4px; }
+.chat-input-row { display: flex; gap: 8px; }
+.chat-input-row input {
+  flex: 1; padding: 12px 16px; border-radius: 20px; border: 1px solid var(--glass-border);
+  outline: none; background: var(--glass-bg); color: var(--text); font-family: 'Poppins', sans-serif;
+}
+
+/* GAMES MATRIX */
+.games-matrix {
+  display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-bottom: 20px;
+}
+.game-btn {
+  background: var(--glass-bg); border: 1px solid var(--glass-border); border-radius: 16px;
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  padding: 12px 6px; cursor: pointer; color: var(--text); transition: 0.2s; text-align: center;
+}
+.game-btn.active { background: var(--accent); color: #fff; border-color: var(--accent); }
+.game-btn .g-icon { font-size: 1.8em; margin-bottom: 6px; }
+.game-btn .g-name { font-size: 0.7em; font-weight: 600; font-family: 'Poppins', sans-serif; line-height: 1.2; }
+.game-btn .duo-tag { font-size: 0.6em; background: rgba(0,0,0,0.1); padding: 2px 4px; border-radius: 4px; margin-top: 4px; }
+.game-btn.active .duo-tag { background: rgba(255,255,255,0.2); }
+
+.game-view { display: none; }
+.game-view.active { display: block; animation: fadeIn 0.3s ease; }
+
+/* Mini Game UI */
+.mini-card { text-align: center; padding: 15px 0; }
+.mini-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; max-width: 220px; margin: 15px auto; }
+.mini-cell {
+  background: var(--glass-bg); border: 1px solid var(--glass-border); height: 65px; border-radius: 12px;
+  display: flex; align-items: center; justify-content: center; font-size: 2em; font-weight: 700; cursor: pointer;
+}
+.score-line { font-weight: 700; margin: 10px 0; text-align: center; }
+
+/* Choice Engine */
+.tot-q { font-family: 'Playfair Display', serif; font-style: italic; font-size: 1.2em; margin-bottom: 20px; text-align: center; }
+.tot-options { display: flex; gap: 10px; justify-content: center; flex-direction: column; }
+.tot-opt {
+  padding: 14px; border-radius: 14px; background: var(--glass-bg); border: 1.5px solid var(--glass-border);
+  cursor: pointer; font-weight: 600; text-align: center; transition: 0.2s;
+}
+.tot-opt.picked { background: var(--accent); color: #fff; border-color: var(--accent); transform: scale(1.02); }
+.tot-reveal { margin-top: 20px; font-size: 0.9em; text-align: center; line-height: 1.6; }
+.tot-match { font-weight: 700; color: var(--accent); margin-top: 8px; font-size: 1.1em; }
+
+/* Shayari & Surprise */
+.shayari-card {
+  background: var(--glass-bg); border-radius: 18px; padding: 25px 20px; font-family: 'Playfair Display', serif;
+  font-style: italic; font-size: 1.1em; line-height: 1.9; text-align: center; white-space: pre-line; min-height: 160px;
+  display: flex; align-items: center; justify-content: center; border: 1px solid var(--glass-border);
+}
+.surprise-cta { text-align: center; padding: 30px 0; }
+
+#surprise-overlay {
+  position: fixed; inset: 0; display: none; align-items: center; justify-content: center;
+  background: rgba(0,0,0,0.85); backdrop-filter: blur(10px); z-index: 999; flex-direction: column; text-align: center; padding: 20px;
+}
+#surprise-overlay.show { display: flex; }
+.surprise-msg {
+  font-family: 'Playfair Display', serif; font-style: italic; font-weight: 700; font-size: 2.2em; color: #fff;
+  text-shadow: 0 4px 20px var(--accent); margin-bottom: 20px;
+}
+.reason-line { color: #fff; font-weight: 600; font-size: 1.2em; min-height: 2em; padding: 0 20px; }
+
+/* Animations */
+@keyframes anim-pulse { 0%,100%{transform:scale(1)} 50%{transform:scale(1.1)} }
+@keyframes anim-slide { 0%{transform:translateY(30px);opacity:0} 100%{transform:translateY(0);opacity:1} }
+@keyframes anim-bounce { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-15px)} }
+@keyframes anim-zoom { 0%{transform:scale(0.5);opacity:0} 100%{transform:scale(1);opacity:1} }
+.anim-pulse { animation: anim-pulse 2s infinite; }
+.anim-slide { animation: anim-slide 0.6s ease-out; }
+.anim-bounce { animation: anim-bounce 1s infinite; }
+.anim-zoom { animation: anim-zoom 0.6s ease-out; }
+
+.float-heart { position: absolute; font-size: 2em; animation: floatUp linear forwards; pointer-events: none; z-index: 9999; }
+@keyframes floatUp { from { transform: translateY(100vh) rotate(0deg); opacity: 1; } to { transform: translateY(-20vh) rotate(45deg); opacity: 0; } }
+
+/* Toast */
+.toast {
+  position: fixed; bottom: -80px; left: 50%; transform: translateX(-50%); background: #ff3366; color: white;
+  padding: 14px 24px; border-radius: 30px; font-weight: 600; font-size: 0.9em; transition: 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+  z-index: 1000; box-shadow: 0 5px 20px rgba(0,0,0,0.3); text-align: center; width: 90%; max-width: 400px;
+}
+.toast.show { bottom: 30px; }
+
+/* Settings Modal */
+.modal-bg { position: fixed; inset: 0; background: rgba(0,0,0,0.5); display: none; align-items: center; justify-content: center; z-index: 998; padding: 20px; }
+.modal-bg.show { display: flex; }
+.modal { background: var(--glass-bg); backdrop-filter: blur(20px); border: 1px solid var(--glass-border); border-radius: 20px; padding: 25px; width: 100%; max-width: 380px; }
+.modal label { display: block; font-size: 0.85em; font-weight: 600; margin: 12px 0 6px; }
+.modal input { width: 100%; padding: 10px 14px; border-radius: 12px; border: 1px solid var(--glass-border); font-family: 'Poppins', sans-serif; background: rgba(255,255,255,0.8); }
+body.dark-mode .modal input { background: rgba(0,0,0,0.5); color: #fff; }
+.modal-actions { display: flex; gap: 10px; margin-top: 20px; }
+.theme-row { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 10px; }
+.swatch { width: 40px; height: 40px; border-radius: 50%; cursor: pointer; border: 3px solid transparent; transition: 0.2s; }
+.swatch.active { border-color: var(--text); transform: scale(1.15); }
+.setting-row { display: flex; justify-content: space-between; align-items: center; margin-top: 15px; font-weight: 600; font-size: 0.9em; }
+</style>
+</head>
+<body>
+
+<div class="shell">
+
+  <!-- LOGIN -->
+  <div id="login-screen" class="glass">
+    <h1 class="login-title">Kavlo & Gotu 💖</h1>
+    <p class="login-sub">Our private little world — who's tapping in?</p>
+    <div class="role-picker">
+      <div class="role-btn" onclick="login('kavlo')">
+        <span class="role-emoji">🐊</span>
+        <span class="role-name" id="login-name-kavlo">Kavlo</span>
+      </div>
+      <div class="role-btn" onclick="login('gotu')">
+        <span class="role-emoji">💖</span>
+        <span class="role-name" id="login-name-gotu">Gotu</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- APP SHELL -->
+  <div id="app-screen">
+    <div class="glass app-header">
+      <div class="who">
+        <div class="avatar" id="my-avatar">🐊</div>
+        <div class="who-text">
+          <div class="name" id="my-name-label">Kavlo</div>
+          <div class="presence-line">
+            <span class="dot" id="partner-dot"></span>
+            <span id="partner-status">Connecting...</span>
+          </div>
+          <div id="diag-log" style="font-size: 0.7em; opacity: 0.6; margin-top: 2px;"></div>
+        </div>
+      </div>
+      <div class="header-icons">
+        <div class="icon-btn" onclick="openSettings()" title="Settings">⚙️</div>
+        <div class="icon-btn" onclick="logout()" title="Switch user">↩️</div>
+      </div>
+    </div>
+
+    <div class="tabbar">
+      <button class="tab-btn active" data-tab="chat" onclick="switchTab('chat')">💬 Chat</button>
+      <button class="tab-btn" data-tab="games" onclick="switchTab('games')">🎮 Arcade</button>
+      <button class="tab-btn" data-tab="shayari" onclick="switchTab('shayari')">📜 Shayari</button>
+      <button class="tab-btn" data-tab="surprise" onclick="switchTab('surprise')">🎁 Surprise</button>
+    </div>
+
+    <!-- CHAT -->
+    <div class="panel glass active" id="panel-chat">
+      <h3 class="section-title">Our Chat</h3>
+      <p class="hint" style="text-align:center;">Messages vanish after 24 hours ⏳</p>
+      <div class="chat-box" id="chat-box"><div style="text-align:center; opacity:0.6; padding:20px;">Say hi 👋 — synced instantly!</div></div>
+      <div class="chat-input-row">
+        <input id="chat-input" placeholder="Type a message..." onkeypress="if(event.key==='Enter')sendChat()">
+        <button class="pill" onclick="sendChat()">Send</button>
+      </div>
+    </div>
+
+    <!-- GAMES -->
+    <div class="panel glass" id="panel-games" style="padding: 15px;">
+      <h3 class="section-title" style="text-align:center;">Arcade</h3>
+      <div class="games-matrix" id="games-matrix"></div>
+      <hr style="border:0; border-top:1px solid var(--glass-border); margin-bottom:15px; display:none;" id="game-divider">
+      <div id="games-container"></div>
+    </div>
+
+    <!-- SHAYARI -->
+    <div class="panel glass" id="panel-shayari">
+      <h3 class="section-title">Just For You</h3>
+      <div class="shayari-card" id="shayari-card"></div>
+      <div style="display:flex; justify-content:center; gap:10px; margin-top:16px;">
+        <button class="pill ghost" onclick="navShayari(-1)">← Prev</button>
+        <button class="pill" onclick="navShayari(1)">Next →</button>
+      </div>
+    </div>
+
+    <!-- SURPRISE -->
+    <div class="panel glass" id="panel-surprise">
+      <h3 class="section-title">A Little Surprise</h3>
+      <div class="surprise-cta">
+        <p class="hint">Go on, tap it.</p>
+        <button class="pill" style="font-size: 1.1em; padding: 15px 30px;" onclick="triggerSurprise()">Tap for magic 💌</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- OVERLAYS -->
+<div id="surprise-overlay">
+  <div class="surprise-msg" id="surprise-msg">I Love You 💕</div>
+  <div class="reason-line anim-zoom" id="surprise-reason"></div>
+  <button class="pill ghost" style="margin-top:40px; border-color:rgba(255,255,255,0.5); color:#fff;" onclick="closeSurprise()">Close</button>
+</div>
+
+<div class="modal-bg" id="settings-modal">
+  <div class="modal">
+    <h3 class="section-title">Settings</h3>
+    <label>Kavlo's nickname</label> <input id="edit-name-kavlo" maxlength="16">
+    <label>Gotu's nickname</label> <input id="edit-name-gotu" maxlength="16">
+    
+    <div class="setting-row">
+      <span>Dark Mode</span>
+      <button class="pill ghost" style="padding: 5px 15px;" onclick="toggleDarkMode()" id="dark-btn">Off</button>
+    </div>
+    
+    <label style="margin-top:15px;">Theme Color (Both can change)</label>
+    <div class="theme-row" id="theme-row"></div>
+    
+    <div class="modal-actions">
+      <button class="pill ghost" onclick="closeSettings()">Cancel</button>
+      <button class="pill" onclick="saveSettings()">Save</button>
+    </div>
+  </div>
+</div>
+
+<div id="toast" class="toast"></div>
+
+<script>
+/* ============ CONFIG & SAFE STORAGE ============ */
+const THEMES = {
+  blossom: { label: 'Blossom', a:'#ff477e', a2:'#ff8fab', bg1:'#ff9a9e', bg2:'#fecfef' },
+  ocean:   { label: 'Ocean', a:'#3b82f6', a2:'#8b5cf6', bg1:'#a1c4fd', bg2:'#c2e9fb' },
+  mint:    { label: 'Mint', a:'#1fa787', a2:'#5fd6b8', bg1:'#a8f0d8', bg2:'#eafff7' },
+  sunset:  { label: 'Sunset', a:'#ff6b35', a2:'#ffa15c', bg1:'#ffd6a5', bg2:'#fff0db' },
+  lavender:{ label: 'Lavender', a:'#8a5fd6', a2:'#b79ceb', bg1:'#c9b6f5', bg2:'#f3e8ff' }
+};
+const ROLE_META = { kavlo: { emoji: '🐊' }, gotu: { emoji: '💖' } };
+const ONE_DAY_MS = 24 * 60 * 60 * 1000; 
+
+// SAFE MEMORY WRAPPER
+let sharedState = {};
+try {
+  let stored = localStorage.getItem('kg_state');
+  if (stored) sharedState = JSON.parse(stored);
+} catch (error) {
+  console.warn("Secure hosting mode active - local storage blocked, using temporary memory.");
+}
+
+async function sGet(key) { return sharedState[key] || null; }
+async function sSet(key, value, sync = true) {
+  sharedState[key] = value;
+  try { localStorage.setItem('kg_state', JSON.stringify(sharedState)); } catch (e) {} 
+  if (sync && conn && conn.open) conn.send({ type: 'sync', key, value });
+}
+
+let profiles = { kavlo: { name: 'Kavlo' }, gotu: { name: 'Gotu' } };
+let myRole = null, otherRole = null, isDarkMode = false, currentTheme = 'blossom';
+
+/* ============ P2P NETWORK (MOBILE OPTIMIZED TURN SERVER) ============ */
+let peer = null, conn = null;
+const ROOM_PREFIX = "kavlo-gotu-private-room-v7-";
+const diag = document.getElementById('diag-log');
+
+function initP2P() {
+  if (typeof Peer === 'undefined') {
+    showToast("Network blocked by adblocker. Please refresh!");
+    return;
+  }
+  
+  diag.innerText = "Initializing Network...";
+
+  // ADDED TURN SERVER: Bypasses strict 4G/5G/Corporate firewalls!
+  peer = new Peer(ROOM_PREFIX + myRole, {
+    config: {
+      'iceServers': [
+        { urls: 'stun:stun.l.google.com:19302' },
+        { urls: 'stun:stun1.l.google.com:19302' },
+        {
+          urls: "turn:openrelay.metered.ca:80",
+          username: "openrelayproject",
+          credential: "openrelayproject"
+        },
+        {
+          urls: "turn:openrelay.metered.ca:443",
+          username: "openrelayproject",
+          credential: "openrelayproject"
+        },
+        {
+          urls: "turn:openrelay.metered.ca:443?transport=tcp",
+          username: "openrelayproject",
+          credential: "openrelayproject"
+        }
+      ]
+    }
+  });
+
+  peer.on('open', () => {
+    diag.innerText = "Network Ready. Looking for partner...";
+    setInterval(() => {
+      if (!conn || !conn.open) {
+        diag.innerText = "Attempting to connect...";
+        const c = peer.connect(ROOM_PREFIX + otherRole, { reliable: true });
+        c.on('open', () => { if (conn) conn.close(); conn = c; setupConn(); });
+      }
+    }, 4000);
+  });
+  
+  peer.on('error', (err) => {
+    diag.innerText = "Network Error: " + err.type;
+  });
+
+  peer.on('connection', (c) => { 
+    diag.innerText = "Receiving connection...";
+    if (!conn || !conn.open) { conn = c; setupConn(); } 
+  });
+}
+
+function setupConn() {
+  conn.on('open', () => {
+    diag.innerText = "Secure Connection Established ✅";
+    document.getElementById('partner-dot').classList.add('online');
+    document.getElementById('partner-status').innerText = profiles[otherRole].name + ' is online';
+    conn.send({ type: 'full_sync', state: sharedState });
+  });
+  
+  conn.on('data', (data) => {
+    if (data.type === 'sync') {
+      let inc = data.value;
+      if (data.key.startsWith('game:') && sharedState[data.key]) {
+        let loc = sharedState[data.key];
+        if (inc.ans && loc.ans) inc.ans[myRole] = loc.ans[myRole] || inc.ans[myRole];
+        if ('kavlo' in inc && 'gotu' in inc) {
+           if (myRole === 'kavlo' && loc.kavlo && !inc.res) inc.kavlo = loc.kavlo;
+           if (myRole === 'gotu' && loc.gotu && !inc.res) inc.gotu = loc.gotu;
+        }
+      }
+      sharedState[data.key] = inc; 
+      try { localStorage.setItem('kg_state', JSON.stringify(sharedState)); } catch(e){}
+      routeUpdate(data.key);
+      
+    } else if (data.type === 'full_sync') {
+      if (data.state['chat'] && (!sharedState['chat'] || data.state['chat'].length > sharedState['chat'].length)) sharedState['chat'] = data.state['chat'];
+      Object.keys(data.state).forEach(k => { if (k !== 'chat') sharedState[k] = data.state[k]; });
+      try { localStorage.setItem('kg_state', JSON.stringify(sharedState)); } catch(e){}
+      refreshAllUI();
+    }
+  });
+  
+  conn.on('close', () => {
+    conn = null; document.getElementById('partner-dot').classList.remove('online');
+    document.getElementById('partner-status').innerText = 'Waiting for ' + profiles[otherRole].name + '...';
+    diag.innerText = "Connection lost. Reconnecting...";
+  });
+}
+
+function routeUpdate(key) {
+  if (key === 'chat') loadChat(true);
+  if (key === 'theme') { currentTheme = sharedState[key]; applyTheme(currentTheme); }
+  if (key.startsWith('game:')) renderActiveGame();
+}
+function refreshAllUI() { loadChat(false); applyTheme(sharedState['theme'] || 'blossom'); renderActiveGame(); }
+
+function ensureOnline() {
+  if (!conn || !conn.open) { showToast("Partner is offline! Duo games are locked right now. 😔"); return false; }
+  return true;
+}
+function showToast(msg) {
+  const t = document.getElementById('toast'); t.innerText = msg;
+  t.classList.add('show'); setTimeout(() => t.classList.remove('show'), 3500);
+}
+
+/* ============ INIT & UI ============ */
+function applyTheme(tKey) {
+  const t = THEMES[tKey] || THEMES.blossom;
+  const r = document.documentElement.style;
+  r.setProperty('--accent', t.a); r.setProperty('--accent2', t.a2);
+  r.setProperty('--bg1', t.bg1); r.setProperty('--bg2', t.bg2);
+}
+function toggleDarkMode() {
+  isDarkMode = !isDarkMode; sSet('darkMode', isDarkMode, false);
+  document.body.classList.toggle('dark-mode', isDarkMode);
+  document.getElementById('dark-btn').innerText = isDarkMode ? "On" : "Off";
+}
+
+async function init() {
+  const p = await sGet('profiles_v2'); if (p) profiles = p;
+  document.getElementById('login-name-kavlo').innerText = profiles.kavlo.name;
+  document.getElementById('login-name-gotu').innerText = profiles.gotu.name;
+  
+  isDarkMode = await sGet('darkMode') || false;
+  if(isDarkMode) { document.body.classList.add('dark-mode'); document.getElementById('dark-btn').innerText = "On"; }
+  
+  currentTheme = await sGet('theme') || 'blossom'; applyTheme(currentTheme);
+  
+  let localRole = null;
+  try { localRole = localStorage.getItem('kg_local_role'); } catch(e) {}
+  if (localRole) login(localRole);
+}
+
+function login(role) {
+  myRole = role; otherRole = role === 'kavlo' ? 'gotu' : 'kavlo'; 
+  try { localStorage.setItem('kg_local_role', role); } catch(e) {} 
+  
+  document.getElementById('login-screen').style.display = 'none';
+  document.getElementById('app-screen').style.display = 'block';
+  document.getElementById('my-avatar').innerText = ROLE_META[role].emoji;
+  document.getElementById('my-name-label').innerText = profiles[role].name;
+  
+  initGames(); loadChat(true); renderShayari(); initP2P();
+}
+function logout() {
+  if (peer) { peer.destroy(); peer = null; } conn = null; 
+  try { localStorage.removeItem('kg_local_role'); } catch(e){} 
+  document.getElementById('app-screen').style.display = 'none'; document.getElementById('login-screen').style.display = 'block';
+}
+
+function switchTab(tab) {
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.toggle('active', b.dataset.tab === tab));
+  document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+  document.getElementById('panel-' + tab).classList.add('active');
+}
+
+/* Settings */
+function openSettings() {
+  document.getElementById('edit-name-kavlo').value = profiles.kavlo.name;
+  document.getElementById('edit-name-gotu').value = profiles.gotu.name;
+  const row = document.getElementById('theme-row'); row.innerHTML = '';
+  Object.keys(THEMES).forEach(k => {
+    const sw = document.createElement('div'); sw.className = 'swatch' + (currentTheme === k ? ' active' : '');
+    sw.style.background = THEMES[k].a; sw.onclick = () => { currentTheme = k; sSet('theme', k, true); applyTheme(k); openSettings(); };
+    row.appendChild(sw);
+  });
+  document.getElementById('settings-modal').classList.add('show');
+}
+function closeSettings() { document.getElementById('settings-modal').classList.remove('show'); }
+function saveSettings() {
+  profiles.kavlo.name = document.getElementById('edit-name-kavlo').value.trim() || 'Kavlo';
+  profiles.gotu.name = document.getElementById('edit-name-gotu').value.trim() || 'Gotu';
+  sSet('profiles_v2', profiles, true); document.getElementById('my-name-label').innerText = profiles[myRole].name; closeSettings();
+}
+
+/* ============ CHAT (WITH 24H EXPIRY) ============ */
+async function loadChat(scroll) {
+  let msgs = await sGet('chat') || []; 
+  const now = Date.now();
+  
+  const filteredMsgs = msgs.filter(m => (now - m.ts) < ONE_DAY_MS);
+  if (filteredMsgs.length !== msgs.length) {
+    msgs = filteredMsgs; sSet('chat', msgs, false);
+  }
+
+  const box = document.getElementById('chat-box');
+  if (!msgs.length) { box.innerHTML = '<div style="text-align:center;opacity:0.6;padding:20px;">Say hi 👋 — synced instantly!</div>'; return; }
+  
+  box.innerHTML = msgs.slice(-100).map(m => {
+    const mine = m.from === myRole; const t = new Date(m.ts);
+    return `<div class="msg ${mine ? 'me' : 'them'}">${escapeHtml(m.text)}<span class="ts">${mine ? 'You' : profiles[m.from].name} · ${t.getHours().toString().padStart(2,'0')}:${t.getMinutes().toString().padStart(2,'0')}</span></div>`;
+  }).join('');
+  
+  if (scroll) box.scrollTop = box.scrollHeight;
+}
+function escapeHtml(s) { const d = document.createElement('div'); d.innerText = s; return d.innerHTML; }
+async function sendChat() {
+  const input = document.getElementById('chat-input'); const text = input.value.trim(); if (!text) return;
+  input.value = ''; const msgs = await sGet('chat') || []; msgs.push({ from: myRole, text, ts: Date.now() });
+  sSet('chat', msgs, true); loadChat(true);
+}
+
+/* ============ 15 GAMES ENGINE ============ */
+const GAMES = [
+  { id: 'catch', name: 'Hearts', type: 'solo', icon: '💖' },
+  { id: 'tapper', name: 'Tapper', type: 'solo', icon: '⚡' },
+  { id: 'lovemeter', name: 'Meter', type: 'solo', icon: '🌡️' },
+  { id: 'scramble', name: 'Scramble', type: 'solo', icon: '🔠' },
+  { id: 'reaction', name: 'React', type: 'solo', icon: '⏱️' },
+  { id: 'target', name: 'Target', type: 'solo', icon: '🎯' },
+  { id: 'memory', name: 'Memory', type: 'solo', icon: '🧠' },
+  { id: 'ttt', name: 'Tic-Tac', type: 'duo', icon: '❌' },
+  { id: 'rps', name: 'R.P.S', type: 'duo', icon: '✊' },
+  { id: 'dice', name: 'Dice', type: 'duo', icon: '🎲' },
+  { id: 'tot', name: 'Choices', type: 'duo', icon: '⚖️' },
+  { id: 'quiz', name: 'Quiz', type: 'duo', icon: '📝' },
+  { id: 'wyr', name: 'W.Y.R', type: 'duo', icon: '🤔' },
+  { id: 'nhie', name: 'N.H.I.E', type: 'duo', icon: '🙈' },
+  { id: 'tod', name: 'T.O.D', type: 'duo', icon: '😈' }
+];
+
+let activeGame = null;
+
+function initGames() {
+  const grid = document.getElementById('games-matrix'); const cont = document.getElementById('games-container');
+  grid.innerHTML = ''; cont.innerHTML = '';
+  
+  GAMES.forEach(g => {
+    const btn = document.createElement('div');
+    btn.className = 'game-btn'; btn.id = `nav-${g.id}`;
+    btn.innerHTML = `<div class="g-icon">${g.icon}</div><div class="g-name">${g.name}</div><div class="duo-tag">${g.type==='duo'?'DUO':'SOLO'}</div>`;
+    btn.onclick = () => switchGame(g.id, g.type);
+    grid.appendChild(btn);
+    
+    const view = document.createElement('div'); view.className = 'game-view'; view.id = `game-${g.id}`;
+    cont.appendChild(view);
+  });
+}
+
+function switchGame(id, type) {
+  if (type === 'duo' && !ensureOnline()) return;
+  activeGame = id;
+  document.querySelectorAll('.game-btn').forEach(b => b.classList.remove('active'));
+  document.getElementById(`nav-${id}`).classList.add('active');
+  document.getElementById('game-divider').style.display = 'block';
+  
+  document.querySelectorAll('.game-view').forEach(v => v.classList.remove('active'));
+  document.getElementById(`game-${id}`).classList.add('active');
+  
+  setTimeout(() => document.getElementById('game-divider').scrollIntoView({ behavior: 'smooth', block: 'start' }), 100);
+  renderActiveGame();
+}
+
+function renderActiveGame() {
+  const view = document.getElementById(`game-${activeGame}`);
+  if(!view) return;
+  
+  if(activeGame === 'catch') renderCatch(view);
+  if(activeGame === 'tapper') renderTapper(view);
+  if(activeGame === 'lovemeter') renderLoveMeter(view);
+  if(activeGame === 'scramble') renderScramble(view);
+  if(activeGame === 'reaction') renderReaction(view);
+  if(activeGame === 'target') renderTarget(view);
+  if(activeGame === 'memory') renderMemory(view);
+  
+  if(activeGame === 'ttt') renderTTT(view);
+  if(activeGame === 'rps') renderRPS(view);
+  if(activeGame === 'dice') renderDice(view);
+  if(['tot', 'quiz', 'wyr', 'nhie'].includes(activeGame)) renderChoiceEngine(activeGame, view);
+  if(activeGame === 'tod') renderTOD(view);
+}
+
+/* --- SOLO GAMES --- */
+let cInt=null, cScore=0;
+function renderCatch(v) { v.innerHTML = `<div class="mini-card"><p class="hint">Click emojis before they disappear!</p><button class="pill" onclick="startCatch()">Play Catch</button><div class="score-line">Score: <span id="c-sc">0</span></div><div id="c-area" style="position:relative;height:200px;background:var(--glass-bg);border:1px dashed var(--glass-border);border-radius:12px;overflow:hidden;margin-top:10px;"></div></div>`; }
+function startCatch() {
+  cScore=0; document.getElementById('c-sc').innerText=0; clearInterval(cInt);
+  const a=document.getElementById('c-area'); a.innerHTML='';
+  cInt = setInterval(()=>{
+    const i=document.createElement('div'); i.innerText=['💖','🐊','🎀','✨'][Math.floor(Math.random()*4)];
+    i.style.position='absolute'; i.style.fontSize='2em'; i.style.cursor='pointer';
+    i.style.left=Math.random()*80+'%'; i.style.top=Math.random()*80+'%';
+    i.onclick=()=>{ cScore++; document.getElementById('c-sc').innerText=cScore; i.remove(); };
+    a.appendChild(i); setTimeout(()=>i.remove(), 1000);
+  }, 800);
+  setTimeout(()=>{ clearInterval(cInt); a.innerHTML=`<div style="padding-top:80px;font-weight:bold;">Time's up! Score: ${cScore}</div>`; }, 15000);
+}
+
+let tTime=10, tScore=0, tInt=null;
+function renderTapper(v) { v.innerHTML = `<div class="mini-card"><p class="hint">Tap as fast as you can in 10s!</p><button class="pill" style="padding:20px 40px;font-size:1.5em;" onclick="doTap()" id="tap-btn">Start Tap</button><div class="score-line">Taps: <span id="tap-sc">0</span> | Time: <span id="tap-tm">10</span>s</div></div>`; }
+function doTap() {
+  if(tTime===10 && tScore===0) { tInt = setInterval(()=>{ tTime--; document.getElementById('tap-tm').innerText=tTime; if(tTime<=0){ clearInterval(tInt); document.getElementById('tap-btn').innerText="Finished!"; } },1000); }
+  if(tTime>0) { tScore++; document.getElementById('tap-sc').innerText=tScore; document.getElementById('tap-btn').innerText="TAP!"; }
+}
+
+function renderLoveMeter(v) { v.innerHTML = `<div class="mini-card"><p class="hint">Calculate your love percentage!</p><div style="font-size:3em;margin:20px 0;" id="lm-res">💖</div><button class="pill" onclick="calcLove()">Calculate</button></div>`; }
+function calcLove() { document.getElementById('lm-res').innerHTML = `${Math.floor(Math.random()*11) + 90}%<br><span style="font-size:0.3em;">Perfect match!</span>`; }
+
+const SCRAMBLES = [{w:'ROMANCE', s:'MOCNRAE'}, {w:'KISSES', s:'SSSIKE'}, {w:'FOREVER', s:'REOFVRE'}, {w:'HUGS', s:'GSHU'}]; let scrIdx=0;
+function renderScramble(v) { v.innerHTML = `<div class="mini-card"><p class="hint">Unscramble the romantic word!</p><div style="font-size:2em;letter-spacing:5px;margin:15px 0;font-weight:bold;">${SCRAMBLES[scrIdx].s}</div><input id="scr-in" style="padding:10px;border-radius:10px;text-align:center;"><br><button class="pill" style="margin-top:10px;" onclick="checkScr()">Submit</button><div id="scr-res" style="margin-top:10px;font-weight:bold;"></div></div>`; }
+function checkScr() {
+  if(document.getElementById('scr-in').value.toUpperCase() === SCRAMBLES[scrIdx].w) {
+    document.getElementById('scr-res').innerText = "Correct! 💖"; document.getElementById('scr-in').value='';
+    setTimeout(()=>{ scrIdx=(scrIdx+1)%SCRAMBLES.length; renderScramble(document.getElementById('game-scramble')); }, 1000);
+  } else { document.getElementById('scr-res').innerText = "Try again!"; }
+}
+
+let reactT=0;
+function renderReaction(v) { v.innerHTML = `<div class="mini-card"><p class="hint">Wait for Green, then click!</p><div id="react-box" style="width:100%;height:150px;background:#ff477e;border-radius:15px;margin:15px 0;display:flex;align-items:center;justify-content:center;color:#fff;font-weight:bold;cursor:pointer;" onclick="reactClick()">Start</div><div id="react-res"></div></div>`; }
+function reactClick() {
+  const b = document.getElementById('react-box');
+  if(b.innerText==='Start') { b.innerText='Wait...'; b.style.background='#ffbb00'; setTimeout(()=>{ b.style.background='#33d17a'; b.innerText='CLICK!'; reactT=Date.now(); }, Math.random()*2000+1000); }
+  else if(b.innerText==='CLICK!') { document.getElementById('react-res').innerText=`Time: ${Date.now()-reactT}ms!`; b.innerText='Start'; b.style.background='#ff477e'; }
+  else if(b.innerText==='Wait...') { document.getElementById('react-res').innerText="Too early!"; b.innerText='Start'; b.style.background='#ff477e'; }
+}
+
+let trgScore=0, trgInt=null;
+function renderTarget(v) { v.innerHTML = `<div class="mini-card"><p class="hint">Click the target 10 times fast!</p><button class="pill" onclick="startTarget()">Start</button><div class="score-line">Score: <span id="trg-sc">0</span>/10 | Time: <span id="trg-tm">0</span>s</div><div id="trg-area" style="position:relative;height:200px;margin-top:10px;"></div></div>`; }
+function startTarget() {
+  trgScore=0; let t=0; document.getElementById('trg-sc').innerText=0;
+  trgInt = setInterval(()=>{ t+=0.1; document.getElementById('trg-tm').innerText=t.toFixed(1); },100); popTarget();
+}
+function popTarget() {
+  const a=document.getElementById('trg-area'); a.innerHTML='';
+  if(trgScore>=10) { clearInterval(trgInt); a.innerHTML=`<div style="padding-top:80px;font-weight:bold;">Done!</div>`; return; }
+  const t=document.createElement('div'); t.style.width='40px'; t.style.height='40px'; t.style.background='var(--accent)'; t.style.borderRadius='50%'; t.style.position='absolute';
+  t.style.left=Math.random()*80+'%'; t.style.top=Math.random()*80+'%';
+  t.onclick=()=>{ trgScore++; document.getElementById('trg-sc').innerText=trgScore; popTarget(); }; a.appendChild(t);
+}
+
+let memSel=[], memDone=0;
+function renderMemory(v) {
+  const deck=['💖','💖','🐊','🐊','🎀','🎀','✨','✨'].sort(()=>Math.random()-0.5);
+  v.innerHTML = `<div class="mini-card"><p class="hint">Find the pairs!</p><div class="mini-grid" style="grid-template-columns:repeat(4,1fr);" id="mem-grid"></div><button class="pill ghost" onclick="renderMemory(document.getElementById('game-memory'))">Reset</button></div>`;
+  const g=document.getElementById('mem-grid'); memSel=[]; memDone=0;
+  deck.forEach((d,i)=>{
+    const c=document.createElement('div'); c.className='mini-cell'; c.innerText='❓';
+    c.onclick=()=>{
+      if(c.innerText!=='❓' || memSel.length===2) return;
+      c.innerText=d; memSel.push({c,d});
+      if(memSel.length===2) {
+        if(memSel[0].d===memSel[1].d) { memDone+=2; memSel=[]; if(memDone===8) setTimeout(()=>alert("You won!"),100); }
+        else { setTimeout(()=>{ memSel[0].c.innerText='❓'; memSel[1].c.innerText='❓'; memSel=[]; }, 800); }
+      }
+    }; g.appendChild(c);
+  });
+}
+
+/* --- DUO GAMES --- */
+async function renderTTT(v) {
+  const g = await sGet('game:ttt') || { b:Array(9).fill(''), t:'kavlo', w:null };
+  v.innerHTML = `<div class="mini-card"><div class="score-line" id="ttt-stat"></div><div class="mini-grid" id="ttt-g"></div><button class="pill ghost" onclick="resetTTT()">Restart Game</button></div>`;
+  const grid=document.getElementById('ttt-g');
+  g.b.forEach((mark,i)=>{
+    const c=document.createElement('div'); c.className='mini-cell'; c.innerText=mark;
+    c.onclick=async ()=>{ if(g.w || g.b[i] || g.t!==myRole) return; g.b[i] = myRole==='kavlo'?'X':'O'; g.t = otherRole; checkWin(g); await sSet('game:ttt', g); }; grid.appendChild(c);
+  });
+  document.getElementById('ttt-stat').innerText = g.w ? (g.w==='draw'?"It's a draw!":`${g.w} wins!`) : (g.t===myRole?"Your turn!":`Waiting for ${profiles[otherRole].name}...`);
+}
+function checkWin(g) {
+  const W=[[0,1,2],[3,4,5],[6,7,8],[0,3,6],[1,4,7],[2,5,8],[0,4,8],[2,4,6]];
+  for(let [a,b,c] of W) if(g.b[a]&&g.b[a]===g.b[b]&&g.b[a]===g.b[c]) { g.w=g.b[a]; return; }
+  if(!g.b.includes('')) g.w='draw';
+}
+function resetTTT() { sSet('game:ttt', { b:Array(9).fill(''), t:'kavlo', w:null }); }
+
+async function renderRPS(v) {
+  const g = await sGet('game:rps') || { kavlo:null, gotu:null, res:null };
+  v.innerHTML = `<div class="mini-card"><div class="score-line" id="rps-stat">Choose one!</div><div style="display:flex;gap:10px;justify-content:center;margin:20px 0;"><button class="mini-cell" onclick="playRPS('🪨')">🪨</button><button class="mini-cell" onclick="playRPS('📄')">📄</button><button class="mini-cell" onclick="playRPS('✂️')">✂️</button></div><button class="pill ghost" style="display:${g.res?'inline-block':'none'};" onclick="resetRPS()">Next Round</button></div>`;
+  const stat=document.getElementById('rps-stat');
+  if(g.res) stat.innerText = g.res==='draw'?"It's a tie!":`${g.res} wins!`;
+  else if(g[myRole]) stat.innerText = `Waiting for ${profiles[otherRole].name}...`;
+}
+async function playRPS(c) {
+  let g = await sGet('game:rps') || { kavlo:null, gotu:null, res:null }; g[myRole] = c;
+  if(g.kavlo && g.gotu) {
+    if(g.kavlo === g.gotu) g.res='draw'; else if((g.kavlo==='🪨'&&g.gotu==='✂️')||(g.kavlo==='📄'&&g.gotu==='🪨')||(g.kavlo==='✂️'&&g.gotu==='📄')) g.res='Kavlo'; else g.res='Gotu';
+  }
+  await sSet('game:rps', g);
+}
+function resetRPS() { sSet('game:rps', { kavlo:null, gotu:null, res:null }); }
+
+async function renderDice(v) {
+  const g = await sGet('game:dice') || { kavlo:null, gotu:null };
+  v.innerHTML = `<div class="mini-card"><div style="display:flex;justify-content:space-around;font-size:2em;margin:20px 0;"><div>🐊<br>${g.kavlo||'?'}</div><div>💖<br>${g.gotu||'?'}</div></div><button class="pill" onclick="rollDice()" ${g[myRole]?'disabled':''}>Roll 1-100</button><div class="score-line" style="margin-top:20px;" id="dice-res"></div><button class="pill ghost" style="margin-top:10px; display:${(g.kavlo&&g.gotu)?'inline-block':'none'};" onclick="resetDice()">Play Again</button></div>`;
+  if(g.kavlo && g.gotu) document.getElementById('dice-res').innerText = g.kavlo>g.gotu ? "Kavlo wins!" : (g.gotu>g.kavlo?"Gotu wins!":"It's a tie!");
+}
+async function rollDice() { const g=await sGet('game:dice')||{kavlo:null,gotu:null}; g[myRole]=Math.floor(Math.random()*100)+1; await sSet('game:dice',g); }
+function resetDice() { sSet('game:dice', { kavlo:null, gotu:null }); }
+
+const CHOICE_DATA = {
+  tot: { t: "This or That", q: ["Beach or Mountains?", "Movie or Dinner?", "Text or Call?", "Sweet or Spicy?"] },
+  quiz:{ t: "Couple Quiz", q: ["Who is more stubborn?", "Who says sorry first?", "Who takes longer to get ready?", "Who loves harder?"] },
+  wyr: { t: "Would You Rather", q: ["Always have to sing instead of speak OR dance instead of walk?", "Lose all your money OR lose all your pictures?", "Be trapped in a romantic comedy OR a horror movie?"] },
+  nhie:{ t: "Never Have I Ever", q: ["...snooped on a partner's phone.", "...practiced kissing in a mirror.", "...forgotten a special anniversary.", "...faked a laugh at a bad joke."] }
+};
+
+async function renderChoiceEngine(id, v) {
+  const d = CHOICE_DATA[id]; const g = await sGet(`game:${id}`) || { i:0, ans:{} }; const qText = d.q[g.i % d.q.length];
+  let oHTML = '';
+  if(id==='tot') oHTML=`<div class="tot-opt ${g.ans[myRole]==='A'?'picked':''}" onclick="ansChoice('${id}','A')">${qText.split(' or ')[0]}</div><div class="tot-opt ${g.ans[myRole]==='B'?'picked':''}" onclick="ansChoice('${id}','B')">${qText.split(' or ')[1].replace('?','')}</div>`;
+  if(id==='quiz') oHTML=`<div class="tot-opt ${g.ans[myRole]==='kavlo'?'picked':''}" onclick="ansChoice('${id}','kavlo')">Kavlo 🐊</div><div class="tot-opt ${g.ans[myRole]==='gotu'?'picked':''}" onclick="ansChoice('${id}','gotu')">Gotu 💖</div>`;
+  if(id==='wyr') oHTML=`<div class="tot-opt ${g.ans[myRole]==='A'?'picked':''}" onclick="ansChoice('${id}','A')">${qText.split(' OR ')[0]}</div><div class="tot-opt ${g.ans[myRole]==='B'?'picked':''}" onclick="ansChoice('${id}','B')">${qText.split(' OR ')[1].replace('?','')}</div>`;
+  if(id==='nhie') oHTML=`<div class="tot-opt ${g.ans[myRole]==='Have'?'picked':''}" onclick="ansChoice('${id}','Have')">I Have 🙋</div><div class="tot-opt ${g.ans[myRole]==='Never'?'picked':''}" onclick="ansChoice('${id}','Never')">Never 🙅</div>`;
+  v.innerHTML = `<div class="mini-card"><p class="hint">Answer independently, reveal together!</p><div class="tot-q">${qText}</div><div class="tot-options">${oHTML}</div><div class="tot-reveal" id="${id}-rev"></div><button class="pill ghost" style="margin-top:15px; display:${(g.ans.kavlo && g.ans.gotu)?'inline-block':'none'};" onclick="nextChoice('${id}')">Next Question</button></div>`;
+  if(g.ans.kavlo && g.ans.gotu) {
+    const m = g.ans.kavlo === g.ans.gotu;
+    document.getElementById(`${id}-rev`).innerHTML = `Kavlo: ${g.ans.kavlo} <br> Gotu: ${g.ans.gotu} <br><div class="tot-match">${m?'You matched! 💞':'Different answers!'}</div>`;
+  } else if (g.ans[myRole]) { document.getElementById(`${id}-rev`).innerText = `Waiting for ${profiles[otherRole].name}...`; }
+}
+async function ansChoice(id, ans) { const g=await sGet(`game:${id}`)||{i:0,ans:{}}; g.ans[myRole]=ans; await sSet(`game:${id}`,g); }
+async function nextChoice(id) { const g=await sGet(`game:${id}`)||{i:0,ans:{}}; g.i++; g.ans={}; await sSet(`game:${id}`,g); }
+
+const TOD = { T: ["What's your secret fear?","Worst habit?","Most embarrassing moment?"], D: ["Do 10 pushups.","Send a silly selfie.","Sing a song on voice note."] };
+async function renderTOD(v) {
+  const g = await sGet('game:tod') || { p: "Pick Truth or Dare!", t: "" };
+  v.innerHTML = `<div class="mini-card"><div class="tot-q" style="min-height:80px;display:flex;align-items:center;justify-content:center;">${g.p}</div><div style="display:flex;gap:10px;justify-content:center;margin-top:20px;"><button class="pill" onclick="pickTOD('T')">Truth 😇</button><button class="pill" style="background:#ff3366;" onclick="pickTOD('D')">Dare 😈</button></div></div>`;
+}
+async function pickTOD(type) { await sSet('game:tod', { p: `${profiles[myRole].name}'s ${type==='T'?'Truth':'Dare'}:<br><span style="color:var(--accent);">${TOD[type][Math.floor(Math.random()*TOD[type].length)]}</span>`, t:type }); }
+
+/* ============ SHAYARI & SURPRISE ============ */
+const SHAYARI = [
+  "Tumse milne se pehle,\nadhoori thi har shaam,\nab har lamha tumhare naam.",
+  "Aankhon mein basi ho tum,\nsaanson mein rachi ho tum,\nmeri sabse pyaari kahani ho tum.",
+  "Chai ki pehli chuski ho,\nsubah ki taazi kirann ho tum,\nkhuda ka sabse pyaara jawaab ho tum.",
+  "Dooriyan chahe jitni bhi ho jaayein,\ndil ka fasla kabhi na badhe,\ntum mere sabse pyaare ehsaas ho.",
+  "Muskurahat teri dekh ke,\nmera din ban jaata hai roshan.",
+  "Na kisi shayar ki zaroorat,\nna kisi kitaab ke lafz,\ntum ho meri sabse khoobsurat mohabbat.",
+  "Har raat sitaron se poochta hoon,\nkya tum bhi mujhe yaad karti ho.",
+  "Tum ho toh lagta hai,\nsab kuch sahi hai duniya mein.",
+  "Tere bina zindagi adhoori hai,\nTu mil jaye toh har dua poori hai.",
+  "Khuda kare hamari mohabbat itni gehri ho,\nWaqt tera aur zindagi meri ho."
+];
+let shayIdx=0;
+function renderShayari() { document.getElementById('shayari-card').innerText = SHAYARI[shayIdx]; }
+function navShayari(d) { shayIdx = (shayIdx+d+SHAYARI.length)%SHAYARI.length; renderShayari(); }
+
+const REASONS = [
+  "Your smile is my favourite place.", "You make ordinary days feel special.", "I love how you laugh.",
+  "You're my favourite text notification.", "Every version of you is my favourite.", "You make home feel like home.",
+  "I fall for you a little more every day.", "Your eyes hold my entire universe.", "You are my safe space."
+];
+const ANIM_CLASSES = ['anim-pulse', 'anim-slide', 'anim-bounce', 'anim-zoom'];
+let surpTimer=null, heartTimer=null;
+
+function triggerSurprise() {
+  const targetName = myRole === 'kavlo' ? 'Gotu' : 'Kavlo';
+  document.getElementById('surprise-msg').innerText = `I Love You ${targetName} 💕`;
+  document.getElementById('surprise-overlay').classList.add('show');
+  
+  let rIdx=0; const rEl = document.getElementById('surprise-reason');
+  rEl.innerText = REASONS[rIdx];
+  
+  surpTimer = setInterval(() => {
+    rIdx = (rIdx+1)%REASONS.length; rEl.innerText = REASONS[rIdx];
+    rEl.className = 'reason-line ' + ANIM_CLASSES[Math.floor(Math.random()*ANIM_CLASSES.length)];
+  }, 2500);
+  
+  spawnHeart(); heartTimer = setInterval(spawnHeart, 300);
+}
+
+function spawnHeart() {
+  const overlay = document.getElementById('surprise-overlay');
+  const h = document.createElement('div'); h.className = 'float-heart';
+  h.innerText = ['💖','💕','🐊','✨','💘','🎀'][Math.floor(Math.random()*6)];
+  h.style.left = Math.random()*90+'%';
+  h.style.animationDuration = (Math.random()*2+2)+'s';
+  overlay.appendChild(h); setTimeout(()=>h.remove(), 4000);
+}
+
+function closeSurprise() {
+  document.getElementById('surprise-overlay').classList.remove('show');
+  clearInterval(surpTimer); clearInterval(heartTimer);
+  document.querySelectorAll('.float-heart').forEach(e=>e.remove());
+}
+
+/* STARTUP */
+init();
+</script>
+</body>
+</html>
