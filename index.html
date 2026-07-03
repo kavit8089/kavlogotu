@@ -4,7 +4,6 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <title>Kavlo & Gotu 💖</title>
-<!-- PeerJS Network Library -->
 <script src="https://cdn.jsdelivr.net/npm/peerjs@1.5.4/dist/peerjs.min.js"></script>
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&family=Playfair+Display:ital,wght@0,600;1,500&display=swap');
@@ -199,7 +198,6 @@ body.dark-mode .modal input { background: rgba(0,0,0,0.5); color: #fff; }
 
 <div class="shell">
 
-  <!-- LOGIN -->
   <div id="login-screen" class="glass">
     <h1 class="login-title">Kavlo & Gotu 💖</h1>
     <p class="login-sub">Our private little world — who's tapping in?</p>
@@ -215,7 +213,6 @@ body.dark-mode .modal input { background: rgba(0,0,0,0.5); color: #fff; }
     </div>
   </div>
 
-  <!-- APP SHELL -->
   <div id="app-screen">
     <div class="glass app-header">
       <div class="who">
@@ -226,7 +223,6 @@ body.dark-mode .modal input { background: rgba(0,0,0,0.5); color: #fff; }
             <span class="dot" id="partner-dot"></span>
             <span id="partner-status">Connecting...</span>
           </div>
-          <div id="diag-log" style="font-size: 0.7em; opacity: 0.6; margin-top: 2px;"></div>
         </div>
       </div>
       <div class="header-icons">
@@ -242,7 +238,6 @@ body.dark-mode .modal input { background: rgba(0,0,0,0.5); color: #fff; }
       <button class="tab-btn" data-tab="surprise" onclick="switchTab('surprise')">🎁 Surprise</button>
     </div>
 
-    <!-- CHAT -->
     <div class="panel glass active" id="panel-chat">
       <h3 class="section-title">Our Chat</h3>
       <p class="hint" style="text-align:center;">Messages vanish after 24 hours ⏳</p>
@@ -253,7 +248,6 @@ body.dark-mode .modal input { background: rgba(0,0,0,0.5); color: #fff; }
       </div>
     </div>
 
-    <!-- GAMES -->
     <div class="panel glass" id="panel-games" style="padding: 15px;">
       <h3 class="section-title" style="text-align:center;">Arcade</h3>
       <div class="games-matrix" id="games-matrix"></div>
@@ -261,7 +255,6 @@ body.dark-mode .modal input { background: rgba(0,0,0,0.5); color: #fff; }
       <div id="games-container"></div>
     </div>
 
-    <!-- SHAYARI -->
     <div class="panel glass" id="panel-shayari">
       <h3 class="section-title">Just For You</h3>
       <div class="shayari-card" id="shayari-card"></div>
@@ -271,7 +264,6 @@ body.dark-mode .modal input { background: rgba(0,0,0,0.5); color: #fff; }
       </div>
     </div>
 
-    <!-- SURPRISE -->
     <div class="panel glass" id="panel-surprise">
       <h3 class="section-title">A Little Surprise</h3>
       <div class="surprise-cta">
@@ -282,7 +274,6 @@ body.dark-mode .modal input { background: rgba(0,0,0,0.5); color: #fff; }
   </div>
 </div>
 
-<!-- OVERLAYS -->
 <div id="surprise-overlay">
   <div class="surprise-msg" id="surprise-msg">I Love You 💕</div>
   <div class="reason-line anim-zoom" id="surprise-reason"></div>
@@ -343,10 +334,9 @@ async function sSet(key, value, sync = true) {
 let profiles = { kavlo: { name: 'Kavlo' }, gotu: { name: 'Gotu' } };
 let myRole = null, otherRole = null, isDarkMode = false, currentTheme = 'blossom';
 
-/* ============ P2P NETWORK (MOBILE OPTIMIZED TURN SERVER) ============ */
+/* ============ P2P NETWORK (MOBILE OPTIMIZED TURN + SYNC STATUS) ============ */
 let peer = null, conn = null;
-const ROOM_PREFIX = "kavlo-gotu-private-room-v7-";
-const diag = document.getElementById('diag-log');
+const ROOM_PREFIX = "kavlo-gotu-private-room-v8-";
 
 function initP2P() {
   if (typeof Peer === 'undefined') {
@@ -354,64 +344,42 @@ function initP2P() {
     return;
   }
   
-  diag.innerText = "Initializing Network...";
-
-  // ADDED TURN SERVER: Bypasses strict 4G/5G/Corporate firewalls!
   peer = new Peer(ROOM_PREFIX + myRole, {
     config: {
       'iceServers': [
         { urls: 'stun:stun.l.google.com:19302' },
         { urls: 'stun:stun1.l.google.com:19302' },
-        {
-          urls: "turn:openrelay.metered.ca:80",
-          username: "openrelayproject",
-          credential: "openrelayproject"
-        },
-        {
-          urls: "turn:openrelay.metered.ca:443",
-          username: "openrelayproject",
-          credential: "openrelayproject"
-        },
-        {
-          urls: "turn:openrelay.metered.ca:443?transport=tcp",
-          username: "openrelayproject",
-          credential: "openrelayproject"
-        }
+        { urls: "turn:openrelay.metered.ca:80", username: "openrelayproject", credential: "openrelayproject" },
+        { urls: "turn:openrelay.metered.ca:443", username: "openrelayproject", credential: "openrelayproject" }
       ]
     }
   });
 
   peer.on('open', () => {
-    diag.innerText = "Network Ready. Looking for partner...";
     setInterval(() => {
       if (!conn || !conn.open) {
-        diag.innerText = "Attempting to connect...";
         const c = peer.connect(ROOM_PREFIX + otherRole, { reliable: true });
-        c.on('open', () => { if (conn) conn.close(); conn = c; setupConn(); });
+        c.on('open', () => { if (conn) conn.close(); conn = c; setupConn(true); });
       }
     }, 4000);
   });
   
-  peer.on('error', (err) => {
-    diag.innerText = "Network Error: " + err.type;
-  });
-
   peer.on('connection', (c) => { 
-    diag.innerText = "Receiving connection...";
-    if (!conn || !conn.open) { conn = c; setupConn(); } 
+    if (!conn || !conn.open) { conn = c; setupConn(false); } 
   });
 }
 
-function setupConn() {
+function setupConn(isInitiator) {
   conn.on('open', () => {
-    diag.innerText = "Secure Connection Established ✅";
-    document.getElementById('partner-dot').classList.add('online');
-    document.getElementById('partner-status').innerText = profiles[otherRole].name + ' is online';
-    conn.send({ type: 'full_sync', state: sharedState });
+    conn.send({ type: 'handshake', from: myRole });
+    setConnectedUI();
+    if (isInitiator) conn.send({ type: 'full_sync', state: sharedState });
   });
   
   conn.on('data', (data) => {
-    if (data.type === 'sync') {
+    if (data.type === 'handshake') {
+      setConnectedUI();
+    } else if (data.type === 'sync') {
       let inc = data.value;
       if (data.key.startsWith('game:') && sharedState[data.key]) {
         let loc = sharedState[data.key];
@@ -434,10 +402,15 @@ function setupConn() {
   });
   
   conn.on('close', () => {
-    conn = null; document.getElementById('partner-dot').classList.remove('online');
+    conn = null; 
+    document.getElementById('partner-dot').classList.remove('online');
     document.getElementById('partner-status').innerText = 'Waiting for ' + profiles[otherRole].name + '...';
-    diag.innerText = "Connection lost. Reconnecting...";
   });
+}
+
+function setConnectedUI() {
+  document.getElementById('partner-dot').classList.add('online');
+  document.getElementById('partner-status').innerText = profiles[otherRole].name + ' is online';
 }
 
 function routeUpdate(key) {
