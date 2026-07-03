@@ -4,6 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <title>Kavlo & Gotu 💖</title>
+<!-- PeerJS Network Library -->
 <script src="https://cdn.jsdelivr.net/npm/peerjs@1.5.4/dist/peerjs.min.js"></script>
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&family=Playfair+Display:ital,wght@0,600;1,500&display=swap');
@@ -180,24 +181,32 @@ button.pill.ghost { background: var(--glass-bg); color: var(--text); box-shadow:
 }
 .toast.show { bottom: 30px; }
 
-/* Settings Modal */
+/* Modals */
 .modal-bg { position: fixed; inset: 0; background: rgba(0,0,0,0.5); display: none; align-items: center; justify-content: center; z-index: 998; padding: 20px; }
 .modal-bg.show { display: flex; }
 .modal { background: var(--glass-bg); backdrop-filter: blur(20px); border: 1px solid var(--glass-border); border-radius: 20px; padding: 25px; width: 100%; max-width: 380px; }
 .modal label { display: block; font-size: 0.85em; font-weight: 600; margin: 12px 0 6px; }
-.modal input { width: 100%; padding: 10px 14px; border-radius: 12px; border: 1px solid var(--glass-border); font-family: 'Poppins', sans-serif; background: rgba(255,255,255,0.8); }
-body.dark-mode .modal input { background: rgba(0,0,0,0.5); color: #fff; }
+.modal input, .modal textarea { width: 100%; padding: 10px 14px; border-radius: 12px; border: 1px solid var(--glass-border); font-family: 'Poppins', sans-serif; background: rgba(255,255,255,0.8); }
+body.dark-mode .modal input, body.dark-mode .modal textarea { background: rgba(0,0,0,0.5); color: #fff; }
 .modal-actions { display: flex; gap: 10px; margin-top: 20px; }
 .theme-row { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 10px; }
 .swatch { width: 40px; height: 40px; border-radius: 50%; cursor: pointer; border: 3px solid transparent; transition: 0.2s; }
 .swatch.active { border-color: var(--text); transform: scale(1.15); }
 .setting-row { display: flex; justify-content: space-between; align-items: center; margin-top: 15px; font-weight: 600; font-size: 0.9em; }
+
+/* Global Countdown Overlay */
+#countdown-overlay {
+  position: fixed; inset: 0; background: rgba(0,0,0,0.85); z-index: 9999; display: none;
+  align-items: center; justify-content: center; color: #fff; font-size: 6em; font-weight: bold; font-family: 'Poppins', sans-serif;
+  text-shadow: 0 0 20px var(--accent);
+}
 </style>
 </head>
 <body>
 
 <div class="shell">
 
+  <!-- LOGIN -->
   <div id="login-screen" class="glass">
     <h1 class="login-title">Kavlo & Gotu 💖</h1>
     <p class="login-sub">Our private little world — who's tapping in?</p>
@@ -213,6 +222,7 @@ body.dark-mode .modal input { background: rgba(0,0,0,0.5); color: #fff; }
     </div>
   </div>
 
+  <!-- APP SHELL -->
   <div id="app-screen">
     <div class="glass app-header">
       <div class="who">
@@ -238,6 +248,7 @@ body.dark-mode .modal input { background: rgba(0,0,0,0.5); color: #fff; }
       <button class="tab-btn" data-tab="surprise" onclick="switchTab('surprise')">🎁 Surprise</button>
     </div>
 
+    <!-- CHAT -->
     <div class="panel glass active" id="panel-chat">
       <h3 class="section-title">Our Chat</h3>
       <p class="hint" style="text-align:center;">Messages vanish after 24 hours ⏳</p>
@@ -248,6 +259,7 @@ body.dark-mode .modal input { background: rgba(0,0,0,0.5); color: #fff; }
       </div>
     </div>
 
+    <!-- GAMES -->
     <div class="panel glass" id="panel-games" style="padding: 15px;">
       <h3 class="section-title" style="text-align:center;">Arcade</h3>
       <div class="games-matrix" id="games-matrix"></div>
@@ -255,6 +267,7 @@ body.dark-mode .modal input { background: rgba(0,0,0,0.5); color: #fff; }
       <div id="games-container"></div>
     </div>
 
+    <!-- SHAYARI -->
     <div class="panel glass" id="panel-shayari">
       <h3 class="section-title">Just For You</h3>
       <div class="shayari-card" id="shayari-card"></div>
@@ -262,8 +275,15 @@ body.dark-mode .modal input { background: rgba(0,0,0,0.5); color: #fff; }
         <button class="pill ghost" onclick="navShayari(-1)">← Prev</button>
         <button class="pill" onclick="navShayari(1)">Next →</button>
       </div>
+      <!-- Manual Shayari Input -->
+      <div style="margin-top: 25px; padding-top: 15px; border-top: 1px dashed var(--glass-border); text-align: center;">
+        <p class="hint" style="margin-bottom: 8px;">Write a custom secret shayari!</p>
+        <textarea id="custom-shayari-input" rows="2" placeholder="Type here..." style="width:100%; padding:10px; border-radius:12px; border:1px solid var(--glass-border); background:rgba(255,255,255,0.5); font-family:'Poppins',sans-serif; outline:none;"></textarea>
+        <button class="pill ghost" style="margin-top:10px;" onclick="sendCustomShayari()">Send Secret Shayari</button>
+      </div>
     </div>
 
+    <!-- SURPRISE -->
     <div class="panel glass" id="panel-surprise">
       <h3 class="section-title">A Little Surprise</h3>
       <div class="surprise-cta">
@@ -274,10 +294,26 @@ body.dark-mode .modal input { background: rgba(0,0,0,0.5); color: #fff; }
   </div>
 </div>
 
+<!-- OVERLAYS -->
 <div id="surprise-overlay">
   <div class="surprise-msg" id="surprise-msg">I Love You 💕</div>
   <div class="reason-line anim-zoom" id="surprise-reason"></div>
   <button class="pill ghost" style="margin-top:40px; border-color:rgba(255,255,255,0.5); color:#fff;" onclick="closeSurprise()">Close</button>
+</div>
+
+<div id="countdown-overlay">5</div>
+
+<!-- GAME INVITE MODAL -->
+<div class="modal-bg" id="invite-modal">
+  <div class="modal" style="text-align:center;">
+    <h3 class="section-title">Game Invite! 🎮</h3>
+    <p id="invite-text" style="font-weight:600; font-size:1.1em; margin-bottom:20px;">Partner wants to play!</p>
+    <div style="display:flex; flex-direction:column; gap:12px;">
+      <button class="pill" onclick="handleInvite('accept')">Let's Play!</button>
+      <button class="pill ghost" onclick="handleInvite('wait')">Wait 5 Seconds</button>
+      <button class="pill ghost" style="border-color:#ff3366; color:#ff3366;" onclick="handleInvite('deny')">Not Now</button>
+    </div>
+  </div>
 </div>
 
 <div class="modal-bg" id="settings-modal">
@@ -334,7 +370,7 @@ async function sSet(key, value, sync = true) {
 let profiles = { kavlo: { name: 'Kavlo' }, gotu: { name: 'Gotu' } };
 let myRole = null, otherRole = null, isDarkMode = false, currentTheme = 'blossom';
 
-/* ============ P2P NETWORK (MOBILE OPTIMIZED TURN + SYNC STATUS) ============ */
+/* ============ P2P NETWORK ============ */
 let peer = null, conn = null;
 const ROOM_PREFIX = "kavlo-gotu-private-room-v8-";
 
@@ -377,14 +413,16 @@ function setupConn(isInitiator) {
   });
   
   conn.on('data', (data) => {
+    // Handling standard sync
     if (data.type === 'handshake') {
       setConnectedUI();
-    } else if (data.type === 'sync') {
+    } 
+    else if (data.type === 'sync') {
       let inc = data.value;
       if (data.key.startsWith('game:') && sharedState[data.key]) {
         let loc = sharedState[data.key];
-        if (inc.ans && loc.ans) inc.ans[myRole] = loc.ans[myRole] || inc.ans[myRole];
-        if ('kavlo' in inc && 'gotu' in inc) {
+        if (inc && inc.ans && loc.ans) inc.ans[myRole] = loc.ans[myRole] || inc.ans[myRole];
+        if (inc && 'kavlo' in inc && 'gotu' in inc) {
            if (myRole === 'kavlo' && loc.kavlo && !inc.res) inc.kavlo = loc.kavlo;
            if (myRole === 'gotu' && loc.gotu && !inc.res) inc.gotu = loc.gotu;
         }
@@ -392,12 +430,28 @@ function setupConn(isInitiator) {
       sharedState[data.key] = inc; 
       try { localStorage.setItem('kg_state', JSON.stringify(sharedState)); } catch(e){}
       routeUpdate(data.key);
-      
-    } else if (data.type === 'full_sync') {
+    } 
+    else if (data.type === 'full_sync') {
       if (data.state['chat'] && (!sharedState['chat'] || data.state['chat'].length > sharedState['chat'].length)) sharedState['chat'] = data.state['chat'];
       Object.keys(data.state).forEach(k => { if (k !== 'chat') sharedState[k] = data.state[k]; });
       try { localStorage.setItem('kg_state', JSON.stringify(sharedState)); } catch(e){}
       refreshAllUI();
+    }
+    // Handling New Invites
+    else if (data.type === 'game_invite') {
+      pendingInviteGameId = data.gameId;
+      document.getElementById('invite-text').innerText = `${data.sender} wants to play ${data.gameName}!`;
+      document.getElementById('invite-modal').classList.add('show');
+    }
+    // Handling Invite Replies
+    else if (data.type === 'invite_reply') {
+      if (data.reply === 'accept') {
+         showToast(`${profiles[otherRole].name} joined the game!`);
+      } else if (data.reply === 'deny') {
+         showToast(`${profiles[otherRole].name} is busy right now.`);
+      } else if (data.reply === 'wait') {
+         startGlobalCountdown(5);
+      }
     }
   });
   
@@ -417,8 +471,9 @@ function routeUpdate(key) {
   if (key === 'chat') loadChat(true);
   if (key === 'theme') { currentTheme = sharedState[key]; applyTheme(currentTheme); }
   if (key.startsWith('game:')) renderActiveGame();
+  if (key === 'custom_shayari') renderShayari();
 }
-function refreshAllUI() { loadChat(false); applyTheme(sharedState['theme'] || 'blossom'); renderActiveGame(); }
+function refreshAllUI() { loadChat(false); applyTheme(sharedState['theme'] || 'blossom'); renderActiveGame(); renderShayari(); }
 
 function ensureOnline() {
   if (!conn || !conn.open) { showToast("Partner is offline! Duo games are locked right now. 😔"); return false; }
@@ -546,6 +601,7 @@ const GAMES = [
 ];
 
 let activeGame = null;
+let pendingInviteGameId = null;
 
 function initGames() {
   const grid = document.getElementById('games-matrix'); const cont = document.getElementById('games-container');
@@ -555,7 +611,7 @@ function initGames() {
     const btn = document.createElement('div');
     btn.className = 'game-btn'; btn.id = `nav-${g.id}`;
     btn.innerHTML = `<div class="g-icon">${g.icon}</div><div class="g-name">${g.name}</div><div class="duo-tag">${g.type==='duo'?'DUO':'SOLO'}</div>`;
-    btn.onclick = () => switchGame(g.id, g.type);
+    btn.onclick = () => switchGame(g.id, g.type, false);
     grid.appendChild(btn);
     
     const view = document.createElement('div'); view.className = 'game-view'; view.id = `game-${g.id}`;
@@ -563,8 +619,17 @@ function initGames() {
   });
 }
 
-function switchGame(id, type) {
+// Updated switchGame with Invite Logic
+function switchGame(id, type, skipInvite = false) {
   if (type === 'duo' && !ensureOnline()) return;
+  
+  // Send invite if it's a duo game and we haven't skipped it
+  if (type === 'duo' && !skipInvite && conn && conn.open) {
+    const gName = GAMES.find(g => g.id === id).name;
+    conn.send({ type: 'game_invite', gameId: id, gameName: gName, sender: profiles[myRole].name });
+    showToast(`Invite sent to ${profiles[otherRole].name}!`);
+  }
+  
   activeGame = id;
   document.querySelectorAll('.game-btn').forEach(b => b.classList.remove('active'));
   document.getElementById(`nav-${id}`).classList.add('active');
@@ -575,6 +640,39 @@ function switchGame(id, type) {
   
   setTimeout(() => document.getElementById('game-divider').scrollIntoView({ behavior: 'smooth', block: 'start' }), 100);
   renderActiveGame();
+}
+
+function handleInvite(reply) {
+  document.getElementById('invite-modal').classList.remove('show');
+  if (conn && conn.open) conn.send({ type: 'invite_reply', reply: reply });
+  
+  if (reply === 'accept') {
+    switchTab('games');
+    switchGame(pendingInviteGameId, 'duo', true); // skip invite so we don't loop
+  } else if (reply === 'wait') {
+    startGlobalCountdown(5);
+    setTimeout(() => {
+      switchTab('games');
+      switchGame(pendingInviteGameId, 'duo', true);
+    }, 5000);
+  }
+}
+
+function startGlobalCountdown(seconds) {
+  const overlay = document.getElementById('countdown-overlay');
+  overlay.style.display = 'flex';
+  overlay.innerText = seconds;
+  
+  const intv = setInterval(() => {
+    seconds--;
+    if(seconds > 0) {
+      overlay.innerText = seconds;
+    } else {
+      overlay.innerText = "GO!";
+      clearInterval(intv);
+      setTimeout(() => { overlay.style.display = 'none'; }, 800);
+    }
+  }, 1000);
 }
 
 function renderActiveGame() {
@@ -744,7 +842,7 @@ async function renderTOD(v) {
 }
 async function pickTOD(type) { await sSet('game:tod', { p: `${profiles[myRole].name}'s ${type==='T'?'Truth':'Dare'}:<br><span style="color:var(--accent);">${TOD[type][Math.floor(Math.random()*TOD[type].length)]}</span>`, t:type }); }
 
-/* ============ SHAYARI & SURPRISE ============ */
+/* ============ SHAYARI (NEW MANUAL ADDITION) ============ */
 const SHAYARI = [
   "Tumse milne se pehle,\nadhoori thi har shaam,\nab har lamha tumhare naam.",
   "Aankhon mein basi ho tum,\nsaanson mein rachi ho tum,\nmeri sabse pyaari kahani ho tum.",
@@ -758,9 +856,42 @@ const SHAYARI = [
   "Khuda kare hamari mohabbat itni gehri ho,\nWaqt tera aur zindagi meri ho."
 ];
 let shayIdx=0;
-function renderShayari() { document.getElementById('shayari-card').innerText = SHAYARI[shayIdx]; }
-function navShayari(d) { shayIdx = (shayIdx+d+SHAYARI.length)%SHAYARI.length; renderShayari(); }
 
+function sendCustomShayari() {
+  const inputEl = document.getElementById('custom-shayari-input');
+  const txt = inputEl.value.trim();
+  if(!txt) return;
+  sSet('custom_shayari', { text: txt, from: myRole }, true);
+  inputEl.value = '';
+  showToast("Secret Shayari sent!");
+}
+
+async function renderShayari() { 
+  const custom = await sGet('custom_shayari');
+  const card = document.getElementById('shayari-card');
+  
+  // Show custom shayari if it exists and it wasn't sent by you
+  if(custom && custom.from !== myRole) {
+    card.innerHTML = `<span style="color:var(--accent);font-weight:700;font-size:0.9em;display:block;margin-bottom:10px;">[New Secret Shayari]</span>${escapeHtml(custom.text)}`;
+  } else {
+    card.innerText = SHAYARI[shayIdx]; 
+  }
+}
+
+async function navShayari(d) { 
+  const custom = await sGet('custom_shayari');
+  
+  if (custom && custom.from !== myRole) {
+    // If they just read a custom shayari and tap Next, trigger hearts & delete it
+    for(let i=0; i<15; i++) setTimeout(spawnHeart, i*100);
+    sSet('custom_shayari', null, true); // Automatically deletes to save space
+  } else {
+    shayIdx = (shayIdx+d+SHAYARI.length)%SHAYARI.length; 
+  }
+  renderShayari(); 
+}
+
+/* ============ SURPRISE ============ */
 const REASONS = [
   "Your smile is my favourite place.", "You make ordinary days feel special.", "I love how you laugh.",
   "You're my favourite text notification.", "Every version of you is my favourite.", "You make home feel like home.",
