@@ -340,7 +340,7 @@ body.dark-mode .modal input, body.dark-mode .modal textarea { background: rgba(0
 <div id="toast" class="toast"></div>
 
 <script>
-/* ============ CONFIG & SAFE STORAGE ============ */
+/* ============ CONFIG & STATE ============ */
 const THEMES = {
   blossom: { label: 'Blossom', a:'#ff477e', a2:'#ff8fab', bg1:'#ff9a9e', bg2:'#fecfef' },
   ocean:   { label: 'Ocean', a:'#3b82f6', a2:'#8b5cf6', bg1:'#a1c4fd', bg2:'#c2e9fb' },
@@ -370,7 +370,7 @@ async function sSet(key, value, sync = true) {
 let profiles = { kavlo: { name: 'Kavlo' }, gotu: { name: 'Gotu' } };
 let myRole = null, otherRole = null, isDarkMode = false, currentTheme = 'blossom';
 
-/* ============ P2P NETWORK ============ */
+/* ============ P2P NETWORK (MOBILE OPTIMIZED) ============ */
 let peer = null, conn = null;
 const ROOM_PREFIX = "kavlo-gotu-private-room-v8-";
 
@@ -413,20 +413,35 @@ function setupConn(isInitiator) {
   });
   
   conn.on('data', (data) => {
-    // Handling standard sync
     if (data.type === 'handshake') {
       setConnectedUI();
     } 
     else if (data.type === 'sync') {
+      // INTUITIVE GAME MERGING AND EVALUATION ENGINE
       let inc = data.value;
-      if (data.key.startsWith('game:') && sharedState[data.key]) {
-        let loc = sharedState[data.key];
-        if (inc && inc.ans && loc.ans) inc.ans[myRole] = loc.ans[myRole] || inc.ans[myRole];
-        if (inc && 'kavlo' in inc && 'gotu' in inc) {
-           if (myRole === 'kavlo' && loc.kavlo && !inc.res) inc.kavlo = loc.kavlo;
-           if (myRole === 'gotu' && loc.gotu && !inc.res) inc.gotu = loc.gotu;
+      if (data.key.startsWith('game:')) {
+        let loc = sharedState[data.key] || {};
+        // Combine answer tracking structural properties smoothly
+        if (inc && inc.ans && loc.ans) {
+          inc.ans = { ...loc.ans, ...inc.ans };
+        }
+        // Force evaluation of rock paper scissors synchronously
+        if (data.key === 'game:rps' && inc) {
+          if (loc.kavlo && !inc.kavlo) inc.kavlo = loc.kavlo;
+          if (loc.gotu && !inc.gotu) inc.gotu = loc.gotu;
+          if (inc.kavlo && inc.gotu && !inc.res) {
+            if (inc.kavlo === inc.gotu) inc.res = 'draw';
+            else if ((inc.kavlo==='🪨'&&inc.gotu==='✂️')||(inc.kavlo==='📄'&&inc.gotu==='🪨')||(inc.kavlo==='✂️'&&inc.gotu==='📄')) inc.res = 'Kavlo';
+            else inc.res = 'Gotu';
+          }
+        }
+        // Force evaluation of dice matching properties smoothly
+        if (data.key === 'game:dice' && inc) {
+          if (loc.kavlo && !inc.kavlo) inc.kavlo = loc.kavlo;
+          if (loc.gotu && !inc.gotu) inc.gotu = loc.gotu;
         }
       }
+      
       sharedState[data.key] = inc; 
       try { localStorage.setItem('kg_state', JSON.stringify(sharedState)); } catch(e){}
       routeUpdate(data.key);
@@ -437,16 +452,14 @@ function setupConn(isInitiator) {
       try { localStorage.setItem('kg_state', JSON.stringify(sharedState)); } catch(e){}
       refreshAllUI();
     }
-    // Handling New Invites
     else if (data.type === 'game_invite') {
       pendingInviteGameId = data.gameId;
       document.getElementById('invite-text').innerText = `${data.sender} wants to play ${data.gameName}!`;
       document.getElementById('invite-modal').classList.add('show');
     }
-    // Handling Invite Replies
     else if (data.type === 'invite_reply') {
       if (data.reply === 'accept') {
-         showToast(`${profiles[otherRole].name} joined the game!`);
+         showToast(`${profiles[otherRole].name} accepted! Game Loading...`);
       } else if (data.reply === 'deny') {
          showToast(`${profiles[otherRole].name} is busy right now.`);
       } else if (data.reply === 'wait') {
@@ -619,11 +632,9 @@ function initGames() {
   });
 }
 
-// Updated switchGame with Invite Logic
 function switchGame(id, type, skipInvite = false) {
   if (type === 'duo' && !ensureOnline()) return;
   
-  // Send invite if it's a duo game and we haven't skipped it
   if (type === 'duo' && !skipInvite && conn && conn.open) {
     const gName = GAMES.find(g => g.id === id).name;
     conn.send({ type: 'game_invite', gameId: id, gameName: gName, sender: profiles[myRole].name });
@@ -648,7 +659,7 @@ function handleInvite(reply) {
   
   if (reply === 'accept') {
     switchTab('games');
-    switchGame(pendingInviteGameId, 'duo', true); // skip invite so we don't loop
+    switchGame(pendingInviteGameId, 'duo', true); 
   } else if (reply === 'wait') {
     startGlobalCountdown(5);
     setTimeout(() => {
@@ -797,9 +808,6 @@ async function renderRPS(v) {
 }
 async function playRPS(c) {
   let g = await sGet('game:rps') || { kavlo:null, gotu:null, res:null }; g[myRole] = c;
-  if(g.kavlo && g.gotu) {
-    if(g.kavlo === g.gotu) g.res='draw'; else if((g.kavlo==='🪨'&&g.gotu==='✂️')||(g.kavlo==='📄'&&g.gotu==='🪨')||(g.kavlo==='✂️'&&g.gotu==='📄')) g.res='Kavlo'; else g.res='Gotu';
-  }
   await sSet('game:rps', g);
 }
 function resetRPS() { sSet('game:rps', { kavlo:null, gotu:null, res:null }); }
@@ -842,7 +850,7 @@ async function renderTOD(v) {
 }
 async function pickTOD(type) { await sSet('game:tod', { p: `${profiles[myRole].name}'s ${type==='T'?'Truth':'Dare'}:<br><span style="color:var(--accent);">${TOD[type][Math.floor(Math.random()*TOD[type].length)]}</span>`, t:type }); }
 
-/* ============ SHAYARI (NEW MANUAL ADDITION) ============ */
+/* ============ SHAYARI ============ */
 const SHAYARI = [
   "Tumse milne se pehle,\nadhoori thi har shaam,\nab har lamha tumhare naam.",
   "Aankhon mein basi ho tum,\nsaanson mein rachi ho tum,\nmeri sabse pyaari kahani ho tum.",
@@ -869,8 +877,6 @@ function sendCustomShayari() {
 async function renderShayari() { 
   const custom = await sGet('custom_shayari');
   const card = document.getElementById('shayari-card');
-  
-  // Show custom shayari if it exists and it wasn't sent by you
   if(custom && custom.from !== myRole) {
     card.innerHTML = `<span style="color:var(--accent);font-weight:700;font-size:0.9em;display:block;margin-bottom:10px;">[New Secret Shayari]</span>${escapeHtml(custom.text)}`;
   } else {
@@ -880,11 +886,9 @@ async function renderShayari() {
 
 async function navShayari(d) { 
   const custom = await sGet('custom_shayari');
-  
   if (custom && custom.from !== myRole) {
-    // If they just read a custom shayari and tap Next, trigger hearts & delete it
     for(let i=0; i<15; i++) setTimeout(spawnHeart, i*100);
-    sSet('custom_shayari', null, true); // Automatically deletes to save space
+    sSet('custom_shayari', null, true); 
   } else {
     shayIdx = (shayIdx+d+SHAYARI.length)%SHAYARI.length; 
   }
